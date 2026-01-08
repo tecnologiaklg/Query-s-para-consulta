@@ -1,0 +1,47 @@
+--Geração de Identificadores Sequenciais de Alocação por Produto e Caixa
+
+SELECT
+    X.ID,
+    X.CODPROD,
+    PRO.DESCRPROD,
+    X.LOTE,
+    X.CXID,
+    X.NOME,
+    N.NR AS SEQ,
+    X.QTD_ALOC || '/' || N.NR AS IDENTIF
+FROM (
+    SELECT
+        CIT.ID,
+        CIT.CODPROD,
+        ITE.LOTE,
+        CXA.CXID,
+        CXA.NOME,
+        TRUNC(CIT.QTD_ALOC) AS QTD_ALOC
+    FROM AD_PCKLIS LIS
+    JOIN AD_PCKCX CXA
+      ON CXA.ID = LIS.ID
+    JOIN AD_PCKCXITE CIT
+      ON CIT.ID = LIS.ID
+     AND CIT.CXID = CXA.CXID
+    LEFT JOIN AD_PCKITE ITE
+      ON ITE.ID = CIT.ID
+     AND ITE.CODPROD = CIT.CODPROD
+    WHERE
+        CXA.NOME = 'BOX 21'
+        AND LIS.CODPROJ = '120250018'
+        AND LIS.CODPARC = 793
+) X
+JOIN (
+    SELECT LEVEL AS NR
+    FROM DUAL
+    CONNECT BY LEVEL <= (
+        SELECT MAX(TRUNC(QTD_ALOC))
+        FROM AD_PCKCXITE
+    )
+) N
+  ON N.NR <= X.QTD_ALOC
+JOIN TGFPRO PRO
+  ON PRO.CODPROD = X.CODPROD
+ORDER BY
+    X.CODPROD,
+    N.NR 
