@@ -1,0 +1,1 @@
+Parceiro.CLIENTE = 'S'AND Parceiro.CODVEND =(SELECT USU.CODVEND FROM TSIUSU USU WHERE USU.CODUSU =  ctx[usuario_logado])OR Parceiro.CODVEND = '1'

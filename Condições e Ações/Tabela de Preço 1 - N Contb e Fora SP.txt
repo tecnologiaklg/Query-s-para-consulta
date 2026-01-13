@@ -1,0 +1,35 @@
+$sql.setParam("CODPARC", $col_CODPARC );
+$sql.select("UFS.UF","TGFPAR PAR JOIN TSICID CID ON PAR.CODCID = CID.CODCID JOIN TSIUFS UFS ON CID.UF = UFS.CODUF", "PAR.CODPARC = {CODPARC}");
+String uf = null;
+if($sql.next() ){
+    uf = $sql.getString(1);
+} else {
+	return $valorCampo;
+}
+
+$sql.setParam("CODPARC", $col_CODPARC );
+$sql.select("PAR.CLASSIFICMS","TGFPAR PAR", "PAR.CODPARC = {CODPARC}");
+String icm = null;
+if($sql.next() ){
+    icm = $sql.getString(1);
+} else {
+	return $valorCampo;
+}
+
+$sql.setParam("CODPARC", $col_CODPARC );
+$sql.select("PAR.CODTAB","TGFPAR PAR", "PAR.CODPARC = {CODPARC}");
+String tab = null;
+if($sql.next() ){
+    icm = $sql.getString(1);
+} else {
+	return $valorCampo;
+}
+
+if (uf != "SP" || icm != "R" && tab != 1){
+	throw new IllegalArgumentException("Para cliente Não Contribuinte e fora de SP, tabela de Preço 1.");
+} else {
+ 	return $valorCampo;
+}
+return $valorCampo;
+
+

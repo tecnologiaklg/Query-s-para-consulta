@@ -1,0 +1,17 @@
+$sql.setParam("NUNOTA", $col_NUNOTA );
+$sql.select("CAB.AD_RESG_1","TGFCAB CAB","CAB.NUNOTA = {NUNOTA}");
+
+String uf = null;
+
+if($sql.next()
+){
+    uf = $sql.getString(1);
+} else {
+	return $valorCampo;
+}
+
+if(uf.equals("N") || uf == null && $valorCampo == "S"){
+	throw new IllegalArgumentException("Para realizar o resgate atual, realize o resgate anterior");
+} else {
+ 	return $valorCampo;
+}

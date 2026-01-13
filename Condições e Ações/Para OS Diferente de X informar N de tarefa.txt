@@ -1,0 +1,4 @@
+if((("0".equals($col_AD_STAT_OS)) || ("1".equals($col_AD_STAT_OS)) || ("2".equals($col_AD_STAT_OS)) || ("3".equals($col_AD_STAT_OS)) || ("4".equals($col_AD_STAT_OS)) || ("5".equals($col_AD_STAT_OS)) || ("6".equals($col_AD_STAT_OS))) && ($col_AD_NRO_TAREFA ==null))
+ {throw new IllegalArgumentException("Para Status diferente de OS Aberta o número da tarefa precisa ser informada");
+}
+ return $col_AD_NRO_TAREFA;

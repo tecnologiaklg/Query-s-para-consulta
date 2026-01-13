@@ -1,0 +1,5 @@
+var query = getQuery();
+
+query.update("UPDATE TGFPAR SET CODVEND = '2' WHERE CODPARC IN ( )");
+
+

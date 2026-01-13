@@ -1,0 +1,18 @@
+(SELECT
+    CODPROD,
+    CONTROLE,
+    CUSREP,
+    DTATUAL
+FROM (
+    SELECT
+        CUS.CODPROD,
+        CUS.CONTROLE,
+        CUS.CUSREP,
+        CUS.DTATUAL,
+        ROW_NUMBER() OVER (
+            PARTITION BY CUS.CODPROD, CUS.CONTROLE
+            ORDER BY CUS.DTATUAL DESC
+        ) AS RN
+    FROM TGFCUS CUS
+)
+WHERE RN = 1) CUS

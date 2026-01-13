@@ -1,0 +1,79 @@
+SELECT
+FFF.CODPROD,
+FFF.PRODUTO,
+FFF.VLR,
+FFF.PORC,
+FFF.QTD,
+CASE WHEN FFF.POR_ACU >= 20 THEN 'A'
+WHEN FFF.POR_ACU >= 5 THEN 'B'
+ELSE 'C' END AS ABC
+FROM
+(SELECT
+    PPP.CODPROD,
+    PPP.PRODUTO,
+    PPP.VLR,
+    PPP.PORC,
+    SUM(PPP.PORC) OVER (ORDER BY PPP.PORC) AS POR_ACU,
+    PPP.QTD
+    FROM
+        (SELECT
+        UUU.CODPROD,
+        UUU.PRODUTO,
+        UUU.VLR,
+        TTT.VLR_TOT,
+        (UUU.VLR * 100) / TTT.VLR_TOT AS PORC,
+        UUU.QTD
+        FROM
+        (SELECT
+            AAA.CODPROD,
+            AAA.DESCRPROD AS PRODUTO,
+            SUM(AAA.VLRTOT) AS VLR,
+            SUM(AAA.QTDNEG) AS QTD
+            FROM (SELECT
+                DISTINCT(CAB.NUNOTA) AS NOTA,
+                PRO.CODPROD,
+                PRO.DESCRPROD,
+                ITE.VLRTOT,
+                ITE.QTDNEG
+                FROM TGFPRO PRO
+                LEFT JOIN TGFITE ITE ON ITE.CODPROD = PRO.CODPROD
+                LEFT JOIN TGFCAB CAB ON CAB.NUNOTA = ITE.NUNOTA
+                LEFT JOIN TSIUFS UFS ON CAB.AD_UF = UFS.DESCRICAO
+                WHERE CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN
+                AND CAB.VLRNOTA <> 0
+                AND PRO.USOPROD = 'R'
+                AND UFS.AD_GRUPO_COMPRA = :UF_P 
+                AND CAB.CODTIPOPER IN ('3200','3205','3250','3262'))AAA
+            GROUP BY
+            AAA.CODPROD,
+            AAA.DESCRPROD
+            ORDER BY VLR DESC) UUU,
+        (SELECT
+            SUM(BBB.VLR) AS VLR_TOT
+            FROM
+            (SELECT
+            AAA.CODPROD,
+            AAA.DESCRPROD AS PRODUTO,
+            SUM(AAA.VLRTOT) AS VLR,
+            SUM(AAA.QTDNEG) AS QTD
+            FROM (SELECT
+                DISTINCT(CAB.NUNOTA) AS NOTA,
+                PRO.CODPROD,
+                PRO.DESCRPROD,
+                ITE.VLRTOT,
+                ITE.QTDNEG
+                FROM TGFPRO PRO
+                LEFT JOIN TGFITE ITE ON ITE.CODPROD = PRO.CODPROD
+                LEFT JOIN TGFCAB CAB ON CAB.NUNOTA = ITE.NUNOTA
+                LEFT JOIN TSIUFS UFS ON CAB.AD_UF = UFS.DESCRICAO
+                WHERE CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN
+                AND CAB.VLRNOTA <> 0
+                AND PRO.USOPROD = 'R'
+                AND UFS.AD_GRUPO_COMPRA = :UF_P 
+                AND CAB.CODTIPOPER IN ('3200','3205','3250','3262'))AAA
+            GROUP BY
+            AAA.CODPROD,
+            AAA.DESCRPROD
+            ORDER BY VLR DESC) BBB) TTT
+            
+            ) PPP) FFF 

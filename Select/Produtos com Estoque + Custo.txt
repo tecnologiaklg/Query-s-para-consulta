@@ -1,0 +1,39 @@
+SELECT
+EST.CODPROD,
+PRO.DESCRPROD AS DESCRICAO,
+EST.CODEMP,
+EST.CONTROLE,
+EST.ESTOQUE AS ESTOQUE,
+EST.CODLOCAL,
+LOC.DESCRLOCAL,
+DDD.CUSREP
+
+FROM 
+TGFEST EST
+JOIN TGFPRO PRO ON EST.CODPROD = PRO.CODPROD
+JOIN TGFLOC LOC ON EST.CODLOCAL = LOC.CODLOCAL
+/*Retorna o Custo*/
+LEFT JOIN (SELECT 
+                    DDD.CONTROLE,
+                    DDD.CODPROD,
+                    CUS.CUSREP
+                    FROM TGFCUS CUS,
+                        (SELECT 
+                        MAX (EEE.DTATUAL) AS DATA,
+                        EEE.CONTROLE,
+                        EEE.CODPROD
+                        FROM TGFCUS EEE
+                        GROUP BY
+                        EEE.CONTROLE,
+                        EEE.CODPROD
+                        ) DDD
+                    WHERE
+                    DDD.CONTROLE = CUS.CONTROLE
+                    AND DDD.CODPROD = CUS.CODPROD
+                    AND DDD.DATA = CUS.DTATUAL
+                    )CC2 ON EST.CODPROD = CC2.CODPROD AND CC2.CONTROLE = EST.CONTROLE
+
+
+WHERE
+EST.ESTOQUE > '0' AND PRO.USOPROD IN ('M')
+--AND EST.CODLOCAL NOT IN ('10480000','10390000','10370000','10450000','10420000','10470000','10010000','10380000','14200000','20020000','30010000','30050000','10020000','10440000')

@@ -1,0 +1,360 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="PERIODO" description="Periodo" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="CODEMP" description="Empresa" metadata="entity:Empresa@CODEMP" required="true" keep-last="true" keep-date="false" order="1"/>
+  </prompt-parameters>
+  <level id="lvl_nzions" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="16"/>
+      <container orientacao="V" tamanhoRelativo="16">
+        <simple-value id="svl_nziont">
+          <value-expression><![CDATA[<b><div style='text-align: center;'><span style='font-size: 22px;'>CREDITO PIS</span></div></b>]]></value-expression>
+          <on-click navigate-to="lvl_nziooo"/>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="16">
+        <simple-value id="svl_nziony">
+          <value-expression><![CDATA[<b><div style='text-align: center;'><span style='font-size: 22px;'>CREDITO COFINS</span></div></b>]]></value-expression>
+          <on-click navigate-to="lvl_nzioop"/>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="16">
+        <simple-value id="svl_nzion0">
+          <value-expression><![CDATA[<b><div style='text-align: center;'><span style='font-size: 22px;'>CREDITO IPI</span></div></b>]]></value-expression>
+          <on-click navigate-to="lvl_nziooq"/>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="16">
+        <simple-value id="svl_nzion2">
+          <value-expression><![CDATA[<b><div style='text-align: center;'><span style='font-size: 22px;'>CREDITO ICMS</span></div></b>]]></value-expression>
+          <on-click navigate-to="lvl_nzioos"/>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="16"/>
+    </container>
+  </level>
+  <level id="lvl_nziooo" description="Pis">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_nzioox" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+  CAB.NUNOTA AS CAB_NUNOTA
+, CAB.NUMNOTA AS CAB_NUMNOTA
+, TOPE.DESCROPER AS TOPE_DESCROPER
+, CAB.VLRNOTA AS CAB_VLRNOTA
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 856 AND OPC.VALOR = CAB.TIPMOV) AS CAB_TIPMOV
+, EMP.RAZAOSOCIAL AS EMP_RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END AS DEBCRED
+, SUM(DIN.BASE) AS DIN_BASE
+, CASE WHEN DIN.ALIQUOTA >= 2.1 then 2.1 ELSE DIN.ALIQUOTA END AS ALIQUOTACALCULADA
+, DIN.ALIQUOTA AS ALIQUOTANF
+, CASE WHEN DIN.ALIQUOTA >= 2.1 then (2.1 * SUM(DIN.BASE)) ELSE SUM(DIN.VALOR) END AS VALORCALCULADO
+, SUM(DIN.VALOR) AS VALORNF
+, PRO.DESCRPROD AS PRO_DESCRPROD
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 613 AND OPC.VALOR = PRO.USOPROD) AS PRO_USOPROD
+, ITE.CODCFO
+, CFO.DESCRCFO
+FROM TGFCAB CAB
+ JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+ JOIN TGFTOP TOPE ON CAB.CODTIPOPER = TOPE.CODTIPOPER AND CAB.DHTIPOPER = TOPE.DHALTER AND CAB.TIPMOV = TOPE.TIPMOV
+ JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+ JOIN TGFDIN DIN ON ITE.NUNOTA = DIN.NUNOTA AND ITE.SEQUENCIA = DIN.SEQUENCIA
+ JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+ JOIN TGFCFO CFO ON ITE.CODCFO = CFO.CODCFO
+WHERE CAB.TIPMOV IN ('V','C','D','E')
+  AND (CAB.STATUSNOTA = 'L')
+  AND DIN.CODIMP in (6)
+  AND DIN.CODINC IN (0,3)
+  AND (CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+  AND CAB.CODEMP = :CODEMP
+GROUP BY CAB.NUNOTA
+, CAB.NUMNOTA
+, TOPE.DESCROPER
+, CAB.VLRNOTA
+, EMP.RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END
+, CASE WHEN DIN.ALIQUOTA >= 9.65 then 9.65 ELSE DIN.ALIQUOTA END
+, DIN.ALIQUOTA
+, PRO.DESCRPROD
+, ITE.CODCFO
+, CFO.DESCRCFO
+, CAB.TIPMOV
+, PRO.USOPROD
+
+UNION ALL
+
+SELECT
+FIN.NUFIN,
+FIN.NUMNOTA,
+TOP.DESCROPER,
+FIN.VLRDESDOB,
+'Financeiro' AS TIPMOV,
+EMP.RAZAOSOCIAL,
+CASE WHEN FIN.RECDESP = -1 THEN 'Crédito' ELSE 'Débito' END  AS DEBCRED,
+FIN.VLRDESDOB AS BASE,
+1.65 AS ALIQUOTACALCULADA,
+1.65 AS ALIQUOTANF,
+ROUND(FIN.VLRDESDOB * 1.65/100,2) AS VALORCALCULADO,
+ROUND(FIN.VLRDESDOB * 1.65/100,2) AS VALORNF,
+'SERVICO DE TRANSPORTE' AS DESCRPROD,
+'SERVICO' AS USOPROD,
+FIN.CODCFO,
+CFO.DESCRCFO
+FROM TGFFIN FIN
+JOIN TGFTOP TOP ON FIN.CODTIPOPER = TOP.CODTIPOPER AND FIN.DHTIPOPER = TOP.DHALTER
+JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+JOIN TGFCFO CFO ON FIN.CODCFO = CFO.CODCFO
+WHERE FIN.CODTIPOPER IN (4102, 4103)
+AND (FIN.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+AND FIN.CODEMP = :CODEMP
+AND FIN.RECDESP <> 0
+ORDER BY 1
+]]></expression>
+        <metadata>
+          <field name="CAB_NUNOTA" label="Nro.Unico" type="I" visible="true" useFooter="false"/>
+          <field name="CAB_NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"/>
+          <field name="TOPE_DESCROPER" label="Tipo de Operacao" type="S" visible="true" useFooter="false"/>
+          <field name="CAB_VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="false"/>
+          <field name="CAB_TIPMOV" label="Tipo Movimento" type="S" visible="true" useFooter="false"/>
+          <field name="EMP_RAZAOSOCIAL" label="Razao Social" type="S" visible="true" useFooter="false"/>
+          <field name="DEBCRED" label="Credito / Debito" type="S" visible="true" useFooter="false"/>
+          <field name="DIN_BASE" label="Base" type="F" visible="true" useFooter="false"/>
+          <field name="ALIQUOTACALCULADA" label="Aliquota Calc" type="F" visible="true" useFooter="SUM"/>
+          <field name="ALIQUOTANF" label="Aliquota Nf" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORCALCULADO" label="Vlr. Calculado" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORNF" label="Vlr. Imposto" type="F" visible="true" useFooter="SUM"/>
+          <field name="PRO_DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="PRO_USOPROD" label="Uso Produto" type="S" visible="true" useFooter="false"/>
+          <field name="CODCFO" label="Cod.CFOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCFO" label="CFOP" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_nzioop" description="Confins">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_nzioo8" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+  CAB.NUNOTA AS CAB_NUNOTA
+, CAB.NUMNOTA AS CAB_NUMNOTA
+, TOPE.DESCROPER AS TOPE_DESCROPER
+, CAB.VLRNOTA AS CAB_VLRNOTA
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 856 AND OPC.VALOR = CAB.TIPMOV) AS CAB_TIPMOV
+, EMP.RAZAOSOCIAL AS EMP_RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END AS DEBCRED
+, SUM(DIN.BASE) AS DIN_BASE
+, CASE WHEN DIN.ALIQUOTA >= 9.65 then 9.65 ELSE DIN.ALIQUOTA END AS ALIQUOTACALCULADA
+, DIN.ALIQUOTA AS ALIQUOTANF
+, CASE WHEN DIN.ALIQUOTA >= 9.65 then (9.65 * SUM(DIN.BASE)) ELSE SUM(DIN.VALOR) END AS VALORCALCULADO
+, SUM(DIN.VALOR) AS VALORNF
+, PRO.DESCRPROD AS PRO_DESCRPROD
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 613 AND OPC.VALOR = PRO.USOPROD) AS PRO_USOPROD
+, ITE.CODCFO
+, CFO.DESCRCFO
+FROM TGFCAB CAB
+ JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+ JOIN TGFTOP TOPE ON CAB.CODTIPOPER = TOPE.CODTIPOPER AND CAB.DHTIPOPER = TOPE.DHALTER AND CAB.TIPMOV = TOPE.TIPMOV
+ JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+ JOIN TGFDIN DIN ON ITE.NUNOTA = DIN.NUNOTA AND ITE.SEQUENCIA = DIN.SEQUENCIA
+ JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+ JOIN TGFCFO CFO ON ITE.CODCFO = CFO.CODCFO
+WHERE CAB.TIPMOV IN ('V','C','D','E')
+  AND (CAB.STATUSNOTA = 'L')
+  AND DIN.CODIMP IN (7)
+  AND DIN.CODINC IN (0,3)
+  AND (CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+  AND CAB.CODEMP = :CODEMP
+GROUP BY CAB.NUNOTA
+, CAB.NUMNOTA
+, TOPE.DESCROPER
+, CAB.VLRNOTA
+, EMP.RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END
+, CASE WHEN DIN.ALIQUOTA >= 9.65 then 9.65 ELSE DIN.ALIQUOTA END
+, DIN.ALIQUOTA
+, PRO.DESCRPROD
+, ITE.CODCFO
+, CFO.DESCRCFO
+, CAB.TIPMOV
+, PRO.USOPROD
+
+UNION ALL
+
+SELECT
+FIN.NUFIN,
+FIN.NUMNOTA,
+TOP.DESCROPER,
+FIN.VLRDESDOB,
+'Financeiro' AS TIPMOV,
+EMP.RAZAOSOCIAL,
+CASE WHEN FIN.RECDESP = -1 THEN 'Crédito' ELSE 'Débito' END  AS DEBCRED,
+FIN.VLRDESDOB AS BASE,
+7.60 AS ALIQUOTACALCULADA,
+7.60 AS ALIQUOTANF,
+ROUND(FIN.VLRDESDOB * 7.6/100,2) AS VALORCALCULADO,
+ROUND(FIN.VLRDESDOB * 7.6/100,2) AS VALORNF,
+'SERVICO DE TRANSPORTE' AS DESCRPROD,
+'SERVICO' AS USOPROD,
+FIN.CODCFO,
+CFO.DESCRCFO
+FROM TGFFIN FIN
+JOIN TGFTOP TOP ON FIN.CODTIPOPER = TOP.CODTIPOPER AND FIN.DHTIPOPER = TOP.DHALTER
+JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+JOIN TGFCFO CFO ON FIN.CODCFO = CFO.CODCFO
+WHERE FIN.CODTIPOPER IN (4102, 4103)
+AND (FIN.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+AND FIN.CODEMP = :CODEMP
+AND FIN.RECDESP <> 0
+ORDER BY 1
+]]></expression>
+        <metadata>
+          <field name="CAB_NUNOTA" label="Nro.Unico" type="I" visible="true" useFooter="false"/>
+          <field name="CAB_NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"/>
+          <field name="TOPE_DESCROPER" label="Tipo de Operacao" type="S" visible="true" useFooter="false"/>
+          <field name="CAB_VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="false"/>
+          <field name="CAB_TIPMOV" label="Tipo Movimento" type="S" visible="true" useFooter="false"/>
+          <field name="EMP_RAZAOSOCIAL" label="Razao Social" type="S" visible="true" useFooter="false"/>
+          <field name="DEBCRED" label="Credito / Debito" type="S" visible="true" useFooter="false"/>
+          <field name="DIN_BASE" label="Base" type="F" visible="true" useFooter="false"/>
+          <field name="ALIQUOTACALCULADA" label="Aliquota Calc" type="F" visible="true" useFooter="SUM"/>
+          <field name="ALIQUOTANF" label="Aliquota Nf" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORCALCULADO" label="Vlr. Calculado" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORNF" label="Vlr. Imposto" type="F" visible="true" useFooter="SUM"/>
+          <field name="PRO_DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="PRO_USOPROD" label="Uso Produto" type="S" visible="true" useFooter="false"/>
+          <field name="CODCFO" label="Cod.CFOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCFO" label="CFOP" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_nziooq" description="Ipi">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_nziopf" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+  CAB.NUNOTA AS CAB_NUNOTA
+, CAB.NUMNOTA AS CAB_NUMNOTA
+, TOPE.DESCROPER AS TOPE_DESCROPER
+, CAB.VLRNOTA AS CAB_VLRNOTA
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 856 AND OPC.VALOR = CAB.TIPMOV) AS CAB_TIPMOV
+, EMP.RAZAOSOCIAL AS EMP_RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END AS DEBCRED
+, SUM(DIN.BASE) AS DIN_BASE
+, DIN.ALIQUOTA AS ALIQUOTANF
+, SUM(DIN.VALOR) AS VALORNF
+, PRO.DESCRPROD AS PRO_DESCRPROD
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 613 AND OPC.VALOR = PRO.USOPROD) AS PRO_USOPROD
+, ITE.CODCFO
+, CFO.DESCRCFO 
+FROM TGFCAB CAB
+ JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+ JOIN TGFTOP TOPE ON CAB.CODTIPOPER = TOPE.CODTIPOPER AND CAB.DHTIPOPER = TOPE.DHALTER AND CAB.TIPMOV = TOPE.TIPMOV
+ JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+ JOIN TGFDIN DIN ON ITE.NUNOTA = DIN.NUNOTA AND ITE.SEQUENCIA = DIN.SEQUENCIA
+ JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+ JOIN TGFCFO CFO ON ITE.CODCFO = CFO.CODCFO
+WHERE CAB.TIPMOV IN ('V','C','D','E')
+  AND (CAB.STATUSNOTA = 'L')
+  AND DIN.CODIMP IN (3)
+  AND (CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+  AND CAB.CODEMP = :CODEMP
+GROUP BY CAB.NUNOTA, CAB.NUMNOTA, TOPE.DESCROPER, CAB.VLRNOTA, EMP.RAZAOSOCIAL, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END
+, DIN.ALIQUOTA, PRO.DESCRPROD, CAB.TIPMOV, PRO.USOPROD, ITE.CODCFO, CFO.DESCRCFO
+ORDER BY 1 ASC]]></expression>
+        <metadata>
+          <field name="CAB_NUNOTA" label="Nro.Unico" type="I" visible="true" useFooter="false"/>
+          <field name="CAB_NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"/>
+          <field name="TOPE_DESCROPER" label="Tipo de Operacao" type="S" visible="true" useFooter="false"/>
+          <field name="CAB_VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="false"/>
+          <field name="CAB_TIPMOV" label="Tipo Movimento" type="S" visible="true" useFooter="false"/>
+          <field name="EMP_RAZAOSOCIAL" label="Razao Social" type="S" visible="true" useFooter="false"/>
+          <field name="DEBCRED" label="Credito / Debito" type="S" visible="true" useFooter="false"/>
+          <field name="DIN_BASE" label="Base" type="F" visible="true" useFooter="false"/>
+          <field name="ALIQUOTANF" label="Aliquota Nf" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORNF" label="Vlr. Imposto" type="F" visible="true" useFooter="SUM"/>
+          <field name="PRO_DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="PRO_USOPROD" label="Uso Produto" type="S" visible="true" useFooter="false"/>
+          <field name="CODCFO" label="Cod.CFOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCFO" label="CFOP" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_nzioos" description="Icms">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_nziopn" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+  CAB.NUNOTA AS CAB_NUNOTA
+, CAB.NUMNOTA AS CAB_NUMNOTA
+, TOPE.DESCROPER AS TOPE_DESCROPER
+, CAB.VLRNOTA AS CAB_VLRNOTA
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 856 AND OPC.VALOR = CAB.TIPMOV) AS CAB_TIPMOV
+, EMP.RAZAOSOCIAL AS EMP_RAZAOSOCIAL
+, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END AS DEBCRED
+, SUM(DIN.BASE) AS DIN_BASE
+, DIN.ALIQUOTA AS ALIQUOTANF
+, SUM(DIN.VALOR) AS VALORNF
+, (SELECT OPC.OPCAO FROM TDDOPC OPC WHERE OPC.NUCAMPO = 613 AND OPC.VALOR = PRO.USOPROD) AS PRO_USOPROD
+, PRO.DESCRPROD AS PRO_DESCRPROD
+, ITE.CODCFO
+, CFO.DESCRCFO
+FROM TGFCAB CAB 
+ JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+ JOIN TGFTOP TOPE ON CAB.CODTIPOPER = TOPE.CODTIPOPER AND CAB.DHTIPOPER = TOPE.DHALTER AND CAB.TIPMOV = TOPE.TIPMOV
+ JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+ JOIN TGFDIN DIN ON ITE.NUNOTA = DIN.NUNOTA AND ITE.SEQUENCIA = DIN.SEQUENCIA
+ JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+ JOIN TGFCFO CFO ON ITE.CODCFO = CFO.CODCFO
+WHERE CAB.TIPMOV IN ('V','C','D','E')
+  AND (CAB.STATUSNOTA = 'L')
+  AND DIN.CODIMP IN (1)
+  AND (CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+  AND CAB.CODEMP = :CODEMP
+GROUP BY CAB.NUNOTA, CAB.NUMNOTA, TOPE.DESCROPER, CAB.VLRNOTA, EMP.RAZAOSOCIAL, CASE WHEN CAB.TIPMOV IN ('C','E') THEN 'Crédito' ELSE 'Débito' END, DIN.ALIQUOTA, PRO.DESCRPROD, CAB.TIPMOV, PRO.USOPROD, ITE.CODCFO, CFO.DESCRCFO
+
+
+UNION ALL
+
+SELECT
+FIN.NUFIN,
+FIN.NUMNOTA,
+TOP.DESCROPER,
+FIN.VLRDESDOB,
+'Financeiro' AS TIPMOV,
+EMP.RAZAOSOCIAL,
+CASE WHEN FIN.RECDESP = -1 THEN 'Crédito' ELSE 'Débito' END  AS DEBCRED,
+FIN.VLRDESDOB AS BASE,
+FIN.ALIQICMS AS ALIQUOTANF,
+ROUND(FIN.VLRDESDOB * FIN.ALIQICMS/100,2) AS VALORNF,
+'SERVICO DE TRANSPORTE' AS DESCRPROD,
+'SERVICO' AS USOPROD,
+FIN.CODCFO,
+CFO.DESCRCFO
+FROM TGFFIN FIN
+JOIN TGFTOP TOP ON FIN.CODTIPOPER = TOP.CODTIPOPER AND FIN.DHTIPOPER = TOP.DHALTER
+JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+JOIN TGFCFO CFO ON FIN.CODCFO = CFO.CODCFO
+WHERE FIN.CODTIPOPER IN (4102, 4103)
+AND (FIN.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN)
+AND FIN.CODEMP = :CODEMP
+AND FIN.RECDESP <> 0
+ORDER BY 1]]></expression>
+        <metadata>
+          <field name="CAB_NUNOTA" label="Nro.Unico" type="I" visible="true" useFooter="false"/>
+          <field name="CAB_NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"/>
+          <field name="TOPE_DESCROPER" label="Tipo de Operacao" type="S" visible="true" useFooter="false"/>
+          <field name="CAB_VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="false"/>
+          <field name="CAB_TIPMOV" label="Tipo Movimento" type="S" visible="true" useFooter="false"/>
+          <field name="EMP_RAZAOSOCIAL" label="Razao Social" type="S" visible="true" useFooter="false"/>
+          <field name="DEBCRED" label="Credito / Debito" type="S" visible="true" useFooter="false"/>
+          <field name="DIN_BASE" label="Base" type="F" visible="true" useFooter="false"/>
+          <field name="ALIQUOTANF" label="Aliquota Nf" type="F" visible="true" useFooter="SUM"/>
+          <field name="VALORNF" label="Vlr. Imposto" type="F" visible="true" useFooter="SUM"/>
+          <field name="PRO_USOPROD" label="Uso Produto" type="S" visible="true" useFooter="false"/>
+          <field name="PRO_DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="CODCFO" label="Cod.CFOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCFO" label="CFOP" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

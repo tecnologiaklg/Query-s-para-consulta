@@ -1,0 +1,53 @@
+<gadget refresh-time="600000">
+  <level id="lvl_aaoh935" description="Principal">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="225">
+        <grid id="grd_aaoh936" useNewGrid="N" tamTexto="18">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+CAB.NUMNOTA,
+CAB.CODPARC || ' - ' ||PAR.NOMEPARC as nomeparc,
+CAB.DTENTSAI,
+CASE WHEN NVL(CAB.AD_NOTAENTREGUE,'N') = 'N' AND CAB.DTENTSAI < TRUNC(SYSDATE) THEN 'RED'
+     WHEN NVL(CAB.AD_NOTAENTREGUE,'N') = 'N' AND CAB.DTENTSAI >= TRUNC(SYSDATE) THEN 'YELLOW'
+ELSE 'GREEN' end as status,
+CAB.AD_DTENTREGA,
+NVL(CAB.AD_DTENTREGA,TRUNC(SYSDATE)) -  CAB.DTENTSAI AS PRAZO
+FROM TGFCAB CAB
+JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+WHERE CAB.TIPMOV = 'V'
+AND CAB.STATUSNOTA = 'L'
+AND CAB.CODTIPOPER IN (3200,3206)
+AND CAB.DTENTSAI >= '26/02/2020'
+AND ((NVL(CAB.AD_NOTAENTREGUE,'N') = 'S' AND CAB.AD_DTENTREGA BETWEEN TRUNC(SYSDATE) - 3 AND TRUNC(SYSDATE)) OR NVL(CAB.AD_NOTAENTREGUE,'N') = 'N')]]></expression>
+          <metadata>
+            <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="DTENTSAI" label="Dt. Saida" type="D" visible="true" useFooter="false"/>
+            <field name="STATUS" label="Status" type="L" visible="true" useFooter="false"/>
+            <field name="AD_DTENTREGA" label="Dt.Entrega" type="D" visible="true" useFooter="false"/>
+            <field name="PRAZO" label="Prazo" type="I" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_aaoh94g" useNewGrid="N" tamTexto="12">
+          <title><![CDATA[<b>Simples Faturamento Pendente</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+CAB.NUMNOTA,
+CAB.CODPARC || ' - ' ||PAR.NOMEPARC as nomeparc,
+CAB.DTNEG
+FROM TGFCAB CAB
+JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+WHERE CAB.CODTIPOPER = 3205
+AND CAB.PENDENTE = 'S'
+AND CAB.STATUSNOTA = 'L']]></expression>
+          <metadata>
+            <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="DTNEG" label="Dt. Emissão" type="D" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+</gadget>

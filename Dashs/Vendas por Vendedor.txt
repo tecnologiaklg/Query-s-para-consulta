@@ -1,0 +1,236 @@
+<gadget refresh-time="600000">
+  <prompt-parameters>
+    <parameter id="PERIODO" description="Periodo" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="CODEMP" description="Empresa" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="1">
+      <expression type="SQL"><![CDATA[SELECT
+
+CODEMP AS VALUE,
+
+NOMEFANTASIA AS LABEL
+
+FROM TSIEMP]]></expression>
+    </parameter>
+  </prompt-parameters>
+  <local-vars>
+    <var id="DTATUAL">
+      <expression type="sql" data-source="MGEDS"><![CDATA[SELECT TRUNC(SYSDATE) FROM DUAL]]></expression>
+    </var>
+  </local-vars>
+  <level id="lvl_qyysos" description="Principal">
+    <args>
+      <arg id="NUNOTA" type="integer"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="138">
+        <container orientacao="V" tamanhoRelativo="236">
+          <simple-value id="svl_ag6malo">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT TRUNC(SYSDATE) AS HOJE FROM DUAL]]></expression>
+            <metadata>
+              <field name="HOJE" label="HOJE" type="D" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<span style='font-size: 17px;'><div style='text-align: center;'><b>Vendas $HOJE</b></div></span>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="V" tamanhoRelativo="1745">
+          <container orientacao="V" tamanhoRelativo="143">
+            <grid id="grd_ag6malq" useNewGrid="S">
+              <title><![CDATA[$DTATUAL]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+    AAA.CODVEND,
+    AAA.APELIDO,
+    AAA.VLRTOT,
+    AAA.CUSTO,
+    AAA.ICMS + AAA.PISCOFINS + AAA.COMISSAO AS GV,
+    RANK() OVER (ORDER BY AAA.VLRTOT DESC) RANK
+FROM (
+        SELECT
+            CAB.CODVEND,
+            VEN.APELIDO,
+            --SUM(DISTINCT CAB.VLRNOTA) AS VLRTOT,
+            --SUM((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * TPO.GOLDEV ) AS VLRTOT,
+              SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * VCA.INDITENSBRUTO) * TPO.GOLDEV) AS VLRTOT,
+            SUM(CUS.CUSGER * ITE.QTDNEG * TPO.GOLDEV ) AS CUSTO,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * ITE.ALIQICMS / 100) * TPO.GOLDEV) AS ICMS,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * 9.25 / 100) * TPO.GOLDEV) AS PISCOFINS,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * 1 / 100) * TPO.GOLDEV) AS COMISSAO
+FROM TGFCAB CAB
+JOIN VGFCAB VCA ON CAB.NUNOTA = VCA.NUNOTA
+JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+LEFT JOIN TGFCUS CUS ON ITE.CODPROD = CUS.CODPROD
+JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+JOIN TGFTOP TPO ON CAB.CODTIPOPER = TPO.CODTIPOPER AND CAB.DHTIPOPER = TPO.DHALTER
+WHERE TRUNC(CAB.DTNEG) = TRUNC(SYSDATE)
+AND CAB.CODEMP IN :CODEMP
+AND CAB.STATUSNOTA = 'L'
+AND TPO.GOLSINAL = -1
+AND CAB.CODPARC NOT IN (1974,1883)
+AND CAB.CODTIPOPER IN (3200, 3205, 3250, 3262)
+AND (CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE CUS.CODPROD = C.CODPROD AND C.DTATUAL <= CAB.DTNEG) OR CUS.DTATUAL IS NULL)
+GROUP BY CAB.CODVEND, VEN.APELIDO
+)AAA
+ORDER BY 3 DESC]]></expression>
+              <metadata>
+                <field name="CODVEND" label="Cod.Vendedor" type="I" visible="true" useFooter="false"/>
+                <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+                <field name="VLRTOT" label="Vlr. Total" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="CUSTO" label="Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="GV" label="Gasto Variável" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="RANK" label="RANK" type="I" visible="true" useFooter="false"/>
+                <field name="GF" label="Gasto F." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                  <calculated>
+                    <formula><![CDATA[$VLRTOT * (16/100)]]></formula>
+                  </calculated>
+                </field>
+                <field name="PERCLUCRO" label="% Lucro" type="F" visible="true" useFooter="false">
+                  <calculated>
+                    <formula><![CDATA[($VLRTOT - $CUSTO - $GV - ($VLRTOT * (16/100)))
+
+/
+
+$VLRTOT
+
+*
+
+100]]></formula>
+                  </calculated>
+                </field>
+                <field name="PERCMC" label="% Margem" type="F" visible="true" useFooter="false">
+                  <calculated>
+                    <formula><![CDATA[($VLRTOT - $CUSTO - $GV) / $VLRTOT * 100.00]]></formula>
+                  </calculated>
+                </field>
+                <field name="LUCRO" label="Lucro" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                  <calculated>
+                    <formula><![CDATA[$VLRTOT - $CUSTO - $GV - ($VLRTOT * (16/100))]]></formula>
+                  </calculated>
+                </field>
+                <field name="MC" label="Margem C." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                  <calculated>
+                    <formula><![CDATA[$VLRTOT - $CUSTO - $GV]]></formula>
+                  </calculated>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="100">
+            <simple-value id="svl_a3ztsqt">
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+SUM(VENDADIARIA) AS VENDADIARIA,
+SUM(METADIARIA) AS METADIARIA,
+SUM(METADIARIA) - SUM(VENDADIARIA) AS FALTANTEDAMETA,
+TRUNC(sysdate) AS HOJE
+FROM (
+            SELECT
+            0 AS VENDADIARIA,
+            (SELECT AD_META_D FROM TGFPAR WHERE CODPARC = 3434) AS METADIARIA
+            FROM DUAL
+        UNION ALL
+            SELECT
+            SUM(CAB.VLRNOTA) AS VENDADIARIA,
+            0 AS METADIARIA
+            FROM TGFCAB CAB
+            WHERE TRUNC(CAB.DTNEG) = TRUNC(SYSDATE)
+			   AND CAB.CODPARC NOT IN (1974,1883)
+            AND CAB.STATUSNOTA = 'L'
+            AND CAB.CODTIPOPER IN (3200, 3205, 3250, 3262)
+)]]></expression>
+              <metadata>
+                <field name="VENDADIARIA" label="VENDADIARIA" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+                <field name="METADIARIA" label="METADIARIA" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+                <field name="FALTANTEDAMETA" label="FALTANTEDAMETA" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+                <field name="HOJE" label="HOJE" type="D" visible="true" useFooter="false"/>
+              </metadata>
+              <value-expression><![CDATA[<br>
+<span style='font-size: 26px;'><div style='text-align: center;'><b>Meta à Realizar</b></div></span>
+<b><div style='text-align: center;'><span style='font-size: 26px;'>$FALTANTEDAMETA</span></div></b>]]></value-expression>
+            </simple-value>
+          </container>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="100">
+        <container orientacao="V" tamanhoRelativo="148">
+          <simple-value id="svl_ag6mak6">
+            <value-expression><![CDATA[<span style='font-size: 17px;'><div style='text-align: center;'><b>Vendas Mês</b></div></span>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="V" tamanhoRelativo="1029">
+          <grid id="grd_ag6mald" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+    AAA.CODVEND,
+    AAA.APELIDO,
+    AAA.VLRTOT,
+    AAA.CUSTO,
+    AAA.ICMS + AAA.PISCOFINS + AAA.COMISSAO AS GV,
+    RANK() OVER (ORDER BY AAA.VLRTOT DESC) RANK
+FROM (
+        SELECT
+            CAB.CODVEND,
+            VEN.APELIDO,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * VCA.INDITENSBRUTO) * TPO.GOLDEV) AS VLRTOT,
+            SUM(CUS.CUSGER * ITE.QTDNEG * TPO.GOLDEV ) AS CUSTO,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * ITE.ALIQICMS / 100) * TPO.GOLDEV) AS ICMS,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * 9.25 / 100) * TPO.GOLDEV) AS PISCOFINS,
+            SUM(((ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED + ITE.VLRSUBST + ITE.VLRIPI) * 1 / 100) * TPO.GOLDEV) AS COMISSAO
+FROM TGFCAB CAB
+JOIN VGFCAB VCA ON CAB.NUNOTA = VCA.NUNOTA
+JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+LEFT JOIN TGFCUS CUS ON ITE.CODPROD = CUS.CODPROD
+JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+JOIN TGFTOP TPO ON CAB.CODTIPOPER = TPO.CODTIPOPER AND CAB.DHTIPOPER = TPO.DHALTER
+WHERE CAB.DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN
+AND CAB.CODEMP IN :CODEMP
+AND CAB.STATUSNOTA = 'L'
+AND TPO.GOLSINAL = -1
+AND CAB.CODPARC NOT IN (1974,1883)
+AND CAB.CODTIPOPER IN (3200, 3205, 3250, 3262)
+AND (CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE CUS.CODPROD = C.CODPROD AND C.DTATUAL <= CAB.DTNEG) OR CUS.DTATUAL IS NULL)
+GROUP BY CAB.CODVEND, VEN.APELIDO
+)AAA
+ORDER BY 3 DESC]]></expression>
+            <metadata>
+              <field name="CODVEND" label="Cod.Vendedor" type="I" visible="true" useFooter="false"/>
+              <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+              <field name="VLRTOT" label="Vlr. Total" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="CUSTO" label="Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="GV" label="Gasto Variável" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="RANK" label="RANK" type="I" visible="true" useFooter="false"/>
+              <field name="PERCLUCRO" label="% Lucro" type="F" visible="true" useFooter="false">
+                <calculated>
+                  <formula><![CDATA[($VLRTOT - $CUSTO - $GV - ($VLRTOT * (16/100)))
+
+/
+
+$VLRTOT
+
+*
+
+100]]></formula>
+                </calculated>
+              </field>
+              <field name="GF" label="Gasto F." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                <calculated>
+                  <formula><![CDATA[$VLRTOT * (16/100)]]></formula>
+                </calculated>
+              </field>
+              <field name="PERCMC" label="% Margem" type="F" visible="true" useFooter="false">
+                <calculated>
+                  <formula><![CDATA[($VLRTOT - $CUSTO - $GV) / $VLRTOT * 100.00]]></formula>
+                </calculated>
+              </field>
+              <field name="LUCRO" label="Lucro" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                <calculated>
+                  <formula><![CDATA[$VLRTOT - $CUSTO - $GV - ($VLRTOT * (16/100))]]></formula>
+                </calculated>
+              </field>
+              <field name="MC" label="Margem C." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                <calculated>
+                  <formula><![CDATA[$VLRTOT - $CUSTO - $GV]]></formula>
+                </calculated>
+              </field>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

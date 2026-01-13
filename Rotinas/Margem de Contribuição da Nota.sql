@@ -1,0 +1,77 @@
+SELECT
+AAA.NUNOTA,
+AAA.VLRNOTA,
+AAA.VLRFRETE,
+AAA.CUSTO,
+AAA.VLRIMP,
+CASE
+WHEN AAA.CUSTO IS NULL OR AAA.CUSTO ='0' THEN 0 
+ELSE SUM((AAA.VLRNOTA - AAA.VLRFRETE - AAA.CUSTO - AAA.VLRIMP) / AAA.VLRNOTA * 100.00) 
+END AS MC
+
+FROM 
+/*Criação de uma View para trazer os resultados ja pré-selecionados*/
+    (SELECT
+    CAB.CODEMP,
+    CAB.NUNOTA,
+    CAB.VLRNOTA,
+    CAB.VLRFRETE,
+    III.VLRIMP,
+    SUM(CCC.CUSGER) AS CUSTO
+
+    FROM 
+    TGFCAB CAB,
+    TGFITE ITE,
+    /*Retorna o Custo*/
+        (SELECT 
+        DDD.CONTROLE,
+        DDD.CODPROD,
+        CUS.CUSGER
+        FROM TGFCUS CUS,
+            (SELECT 
+            MAX (EEE.DTATUAL) AS DATA,
+            EEE.CONTROLE,
+            EEE.CODPROD
+            FROM TGFCUS EEE
+            GROUP BY
+            EEE.CONTROLE,
+            EEE.CODPROD
+            ) DDD
+        WHERE
+        DDD.CONTROLE = CUS.CONTROLE
+        AND DDD.CODPROD = CUS.CODPROD
+        AND DDD.DATA = CUS.DTATUAL
+        ) CCC,
+    /*Retorna os Impostos*/
+        (SELECT
+        DIN.NUNOTA,
+        SUM(DIN.VALOR) AS VLRIMP
+        FROM
+        TGFDIN DIN
+        GROUP BY
+        DIN.NUNOTA
+        ) III
+
+    WHERE
+    CAB.NUNOTA = ITE.NUNOTA
+    AND ITE.CODPROD = CCC.CODPROD 
+    AND ITE.CONTROLE = CCC.CONTROLE
+    AND CAB.NUNOTA = III.NUNOTA
+
+    GROUP BY 
+    CAB.CODEMP,
+    CAB.NUNOTA,
+    CAB.VLRNOTA,
+    CAB.VLRFRETE,
+    III.VLRIMP
+    ) AAA
+
+WHERE
+AAA.NUNOTA = '55934'
+
+GROUP BY
+AAA.NUNOTA,
+AAA.VLRNOTA,
+AAA.VLRFRETE,
+AAA.CUSTO,
+AAA.VLRIMP

@@ -1,0 +1,12 @@
+for(var i = 0; i < linhas.length; i++){
+    var linha = linhas[i];
+
+                linha.setCampo("CODLOCALORIG", getParam("LOCAL"));
+         mensagem = "LOCAIS ALTERADOS \"Entregue\"";
+	
+}
+
+
+var query = getQuery();
+
+query.update("UPDATE TGFCTT SET RECEBEBOLETOEMAIL = 'S' WHERE CODVEND = '20'");

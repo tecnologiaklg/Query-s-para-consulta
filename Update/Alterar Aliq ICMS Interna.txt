@@ -1,0 +1,3 @@
+var query = getQuery();
+
+query.update("UPDATE TGFICM SET ALIQSUBTRIB = '17' WHERE UFDEST = '5' AND UFORIG = '1'");

@@ -1,0 +1,16 @@
+Parceiro.CODPARC IN (SELECT PAR.CODPARC
+FROM
+    TGFPAR PAR 
+WHERE 
+    PAR.CLIENTE = 'S' AND
+    PAR.CODPARC > 0 AND
+    PAR.CODPARC IN 
+                      (
+                      SELECT DISTINCT
+                        CAB.CODPARC
+                      FROM
+                        TGFCAB CAB
+                      WHERE
+                        CAB.CODTIPOPER IN (3200, 3205, 3250, 3262)
+                        AND CAB.DTNEG < CURRENT_DATE AND CAB.DTNEG > CURRENT_DATE - 45 
+                      ))

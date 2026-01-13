@@ -1,0 +1,3 @@
+var query = getQuery();
+
+query.update("UPDATE TGFPRO set MARGLUCRO  = '66,67' where AD_COD_EX IS NOT NULL");
